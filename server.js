@@ -42,8 +42,8 @@ app.use(helmet({ contentSecurityPolicy: false }));
 app.use(express.json({ limit: "32kb" }));
 app.use(express.static(path.join(__dirname, "public")));
 
-const authLimiter = rateLimit({ windowMs: 15 * 60 * 1000, limit: 8, standardHeaders: "draft-8", legacyHeaders: false, message: { error: "Zu viele Versuche. Bitte warte kurz und versuche es erneut." } });
-const registerLimiter = rateLimit({ windowMs: 60 * 60 * 1000, limit: 4, standardHeaders: "draft-8", legacyHeaders: false });
+const authLimiter = rateLimit({ windowMs: 15 * 60 * 1000, limit: 8, standardHeaders: true, legacyHeaders: false, message: { error: "Zu viele Versuche. Bitte warte kurz und versuche es erneut." } });
+const registerLimiter = rateLimit({ windowMs: 60 * 60 * 1000, limit: 4, standardHeaders: true, legacyHeaders: false });
 const hashToken = value => crypto.createHash("sha256").update(value).digest("hex");
 const randomToken = () => crypto.randomBytes(32).toString("base64url");
 const normalizeEmail = value => String(value || "").trim().toLowerCase();
@@ -103,7 +103,7 @@ async function requireAdmin(req, res, next) {
 
 async function initializeDatabase() {
   if (!pool) return;
-  await pool.query(\`
+  await pool.query(`
     CREATE TABLE IF NOT EXISTS users (
       id BIGSERIAL PRIMARY KEY,
       username VARCHAR(16) NOT NULL,
@@ -128,7 +128,7 @@ async function initializeDatabase() {
       expires_at TIMESTAMPTZ NOT NULL,
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
-  \`);
+  `);
   await pool.query("DELETE FROM sessions WHERE expires_at < NOW()");
   await pool.query("DELETE FROM email_verification_tokens WHERE expires_at < NOW()");
   if (ADMIN_EMAIL || ADMIN_PASSWORD) {
@@ -139,6 +139,7 @@ async function initializeDatabase() {
     const existing = await pool.query("SELECT id FROM users WHERE LOWER(email)=LOWER($1)", [ADMIN_EMAIL]);
     if (existing.rowCount) {
       await pool.query("UPDATE users SET username=$1,password_hash=$2,email_verified=TRUE,role='admin' WHERE id=$3", [ADMIN_NAME, passwordHash, existing.rows[0].id]);
+      await pool.query("DELETE FROM sessions WHERE user_id=$1", [existing.rows[0].id]);
     } else {
       await pool.query("INSERT INTO users(username,email,password_hash,email_verified,role) VALUES($1,$2,$3,TRUE,'admin')", [ADMIN_NAME, ADMIN_EMAIL, passwordHash]);
     }
