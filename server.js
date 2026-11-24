@@ -76,6 +76,7 @@ app.use("/api", (req, res, next) => {
   }
   next();
 });
+app.use("/vendor/three", express.static(path.join(__dirname, "node_modules/three/build"), { fallthrough: false, maxAge: "7d" }));
 app.use(express.static(path.join(__dirname, "public")));
 // Serve the platform homepage from the repository root.
 app.get("/", (_req, res) => res.sendFile(path.join(__dirname, "index.html")));
@@ -180,6 +181,7 @@ async function initializeDatabase() {
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
       updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
+    ALTER TABLE published_worlds ADD COLUMN IF NOT EXISTS objects JSONB NOT NULL DEFAULT '[]'::jsonb;
     CREATE INDEX IF NOT EXISTS published_worlds_updated_idx ON published_worlds(updated_at DESC);
     CREATE TABLE IF NOT EXISTS anti_cheat_events (
       id BIGSERIAL PRIMARY KEY,
@@ -355,23 +357,32 @@ app.get("/api/status", (_req, res) => res.json({ name: "Vaylox", status: pool &&
 const worldLimiter = rateLimit({ windowMs: 60 * 1000, limit: 5, standardHeaders: true, legacyHeaders: false });
 app.get("/api/worlds", worldLimiter, requireDatabase, async (_req, res, next) => {
   try {
-    const result = await pool.query("SELECT id,name,tiles,updated_at FROM published_worlds ORDER BY updated_at DESC LIMIT 100");
-    res.json(result.rows.map(row => ({ id: row.id, name: row.name, tiles: row.tiles, updatedAt: row.updated_at })));
+    const result = await pool.query("SELECT id,name,tiles,objects,updated_at FROM published_worlds ORDER BY updated_at DESC LIMIT 100");
+    res.json(result.rows.map(row => ({ id: row.id, name: row.name, tiles: row.tiles, objects: row.objects || [], updatedAt: row.updated_at })));
   } catch (error) { next(error); }
 });
 app.post("/api/worlds", worldLimiter, requireDatabase, async (req, res, next) => {
   try {
     const user = await currentUser(req);
     if (!user || (!user.email_verified && user.role !== "admin")) return res.status(401).json({ error: "Bitte bestätige deine E-Mail und melde dich an." });
-    const { name, tiles } = req.body || {};
-    if (typeof name !== "string" || !name.trim() || !Array.isArray(tiles) || tiles.length > 1600) return res.status(400).json({ error: "Ungültige Welt." });
+    const { name, tiles = [], objects = [] } = req.body || {};
+    if (typeof name !== "string" || !name.trim() || !Array.isArray(tiles) || tiles.length > 1600 || !Array.isArray(objects) || objects.length > 500) return res.status(400).json({ error: "Ungültige Welt." });
     const cleanTiles = [];
     for (const tile of tiles) {
       if (!tile || !Number.isInteger(Number(tile.x)) || !Number.isInteger(Number(tile.y)) || Number(tile.x) < 0 || Number(tile.x) > 39 || Number(tile.y) < 0 || Number(tile.y) > 39) return res.status(400).json({ error: "Ungültige Welt-Daten." });
       cleanTiles.push({ x: Number(tile.x), y: Number(tile.y), type: ["grass","stone","water","sand"].includes(tile.type) ? tile.type : "grass" });
     }
-    const world = { id: crypto.randomUUID(), name: name.trim().slice(0,32), tiles: cleanTiles, updatedAt: new Date().toISOString() };
-    await pool.query("INSERT INTO published_worlds(id,owner_id,name,tiles) VALUES($1,$2,$3,$4::jsonb)", [world.id,user.id,world.name,JSON.stringify(world.tiles)]);
+    const cleanObjects = [];
+    const finite = (v, min, max) => typeof v === "number" && Number.isFinite(v) && v >= min && v <= max;
+    for (const item of objects) {
+      if (!item || !["cube","sphere","cylinder","tree","lamp"].includes(item.type)) return res.status(400).json({ error: "Ungültiger 3D-Objekttyp." });
+      const v = item.position || {}, r = item.rotation || {}, z = item.scale || {};
+      if (![v.x,v.y,v.z].every(n => finite(n,-100,100)) || ![r.x,r.y,r.z].every(n => finite(n,-Math.PI*8,Math.PI*8)) || ![z.x,z.y,z.z].every(n => finite(n,0.1,10))) return res.status(400).json({ error: "Ungültige 3D-Transformation." });
+      const color = typeof item.color === "string" && /^#[0-9a-fA-F]{6}$/.test(item.color) ? item.color : "#9277ff";
+      cleanObjects.push({ type:item.type, position:{x:v.x,y:v.y,z:v.z}, rotation:{x:r.x,y:r.y,z:r.z}, scale:{x:z.x,y:z.y,z:z.z}, color });
+    }
+    const world = { id: crypto.randomUUID(), name: name.trim().slice(0,32), tiles: cleanTiles, objects: cleanObjects, updatedAt: new Date().toISOString() };
+    await pool.query("INSERT INTO published_worlds(id,owner_id,name,tiles,objects) VALUES($1,$2,$3,$4::jsonb,$5::jsonb)", [world.id,user.id,world.name,JSON.stringify(world.tiles),JSON.stringify(world.objects)]);
     io.emit("world:published",world);
     res.status(201).json(world);
   } catch (error) { next(error); }
