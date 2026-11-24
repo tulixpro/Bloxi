@@ -14,6 +14,7 @@ const server = http.createServer(app);
 const io = new Server(server, { maxHttpBufferSize: 16 * 1024, perMessageDeflate: false, pingTimeout: 20000, pingInterval: 25000 });
 const PORT = process.env.PORT || 3000;
 const players = new Map();
+const MAX_ONLINE_PLAYERS = Math.max(1, Math.min(5000, Number(process.env.VAYLOX_MAX_ONLINE_PLAYERS || 500)));
 const publishedWorlds = new Map();
 const SESSION_TTL_MS = 12 * 60 * 60 * 1000;
 const VERIFY_TTL_MS = 30 * 60 * 1000;
@@ -27,7 +28,11 @@ const pool = DATABASE_URL ? new Pool({
   ssl: process.env.NODE_ENV === "production" ? { rejectUnauthorized: true } : false,
   max: 10,
   idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 10000
+  connectionTimeoutMillis: 10000,
+  statement_timeout: 10000,
+  query_timeout: 12000,
+  idle_in_transaction_session_timeout: 15000,
+  application_name: "vaylox"
 }) : null;
 const mailer = mailConfigured ? nodemailer.createTransport({
   host: process.env.SMTP_HOST,
@@ -53,6 +58,8 @@ app.use("/api", (req, res, next) => {
   next();
 });
 app.use(express.static(path.join(__dirname, "public")));
+const apiLimiter = rateLimit({ windowMs: 60 * 1000, limit: 120, standardHeaders: true, legacyHeaders: false, message: { error: "Zu viele Anfragen. Bitte warte kurz." } });
+app.use("/api", apiLimiter);
 
 const authLimiter = rateLimit({ windowMs: 15 * 60 * 1000, limit: 8, standardHeaders: true, legacyHeaders: false, message: { error: "Zu viele Versuche. Bitte warte kurz und versuche es erneut." } });
 const registerLimiter = rateLimit({ windowMs: 60 * 60 * 1000, limit: 4, standardHeaders: true, legacyHeaders: false });
@@ -251,7 +258,13 @@ app.get("/api/auth/me", requireDatabase, async (req, res, next) => {
 app.post("/api/auth/logout", requireDatabase, async (req, res, next) => {
   try {
     const token = getCookie(req, "vaylox_session");
-    if (token) await pool.query("DELETE FROM sessions WHERE token_hash=$1", [hashToken(token)]);
+    if (token) {
+      const tokenHash = hashToken(token);
+      await pool.query("DELETE FROM sessions WHERE token_hash=$1", [tokenHash]);
+      for (const activeSocket of io.sockets.sockets.values()) {
+        if (activeSocket.data.sessionHash === tokenHash) activeSocket.disconnect(true);
+      }
+    }
     res.clearCookie("vaylox_session", { ...cookieOptions, maxAge: undefined });
     res.json({ ok: true });
   } catch (error) { next(error); }
@@ -262,7 +275,13 @@ app.get("/api/admin/me", requireDatabase, requireAdmin, (req, res) => {
 app.post("/api/admin/logout", requireDatabase, async (req, res, next) => {
   try {
     const token = getCookie(req, "vaylox_session");
-    if (token) await pool.query("DELETE FROM sessions WHERE token_hash=$1", [hashToken(token)]);
+    if (token) {
+      const tokenHash = hashToken(token);
+      await pool.query("DELETE FROM sessions WHERE token_hash=$1", [tokenHash]);
+      for (const activeSocket of io.sockets.sockets.values()) {
+        if (activeSocket.data.sessionHash === tokenHash) activeSocket.disconnect(true);
+      }
+    }
     res.clearCookie("vaylox_session", { ...cookieOptions, maxAge: undefined });
     res.json({ ok: true });
   } catch (error) { next(error); }
@@ -270,7 +289,7 @@ app.post("/api/admin/logout", requireDatabase, async (req, res, next) => {
 
 app.get("/api/status", (_req, res) => res.json({ name: "Vaylox", status: "online", players: players.size, worlds: publishedWorlds.size }));
 const worldLimiter = rateLimit({ windowMs: 60 * 1000, limit: 5, standardHeaders: true, legacyHeaders: false });
-app.get("/api/worlds", requireDatabase, async (_req, res, next) => {
+app.get("/api/worlds", worldLimiter, requireDatabase, async (_req, res, next) => {
   try {
     const result = await pool.query("SELECT id,name,tiles,updated_at FROM published_worlds ORDER BY updated_at DESC LIMIT 100");
     res.json(result.rows.map(row => ({ id: row.id, name: row.name, tiles: row.tiles, updatedAt: row.updated_at })));
@@ -318,6 +337,7 @@ io.use(async (socket, next) => {
     const account = result.rows[0];
     if (!account || (!account.email_verified && account.role !== "admin")) return next(new Error("Gültige, bestätigte Anmeldung erforderlich"));
     socket.data.account = account;
+    socket.data.sessionHash = hashToken(token);
     next();
   } catch (_error) { next(new Error("Anmeldung konnte nicht geprüft werden")); }
 });
@@ -328,6 +348,8 @@ io.on("connection", socket => {
   let moveWindowAt = Date.now();
   let suspiciousMoves = 0;
   let lastSecurityLogAt = 0;
+  let inboundWindowAt = Date.now();
+  let inboundEvents = 0;
   const flagSuspiciousMove = (reason, details = {}) => {
     suspiciousMoves += 1;
     const now = Date.now();
@@ -341,8 +363,21 @@ io.on("connection", socket => {
     }
     if (suspiciousMoves >= 5) socket.disconnect(true);
   };
+  // Reject event flooding and any client event outside the tiny multiplayer protocol.
+  socket.onAny(event => {
+    const now = Date.now();
+    if (now - inboundWindowAt >= 1000) { inboundWindowAt = now; inboundEvents = 0; }
+    inboundEvents += 1;
+    if (inboundEvents > 60) flagSuspiciousMove("socket_event_rate_exceeded", { count: inboundEvents });
+    if (!["player:join", "player:move"].includes(event)) flagSuspiciousMove("unknown_socket_event", { event: String(event).slice(0, 48) });
+  });
   socket.on("player:join", () => {
     if (joined) return;
+    if (players.size >= MAX_ONLINE_PLAYERS) {
+      socket.emit("server:busy", { message: "Dieser Spielserver ist gerade voll." });
+      socket.disconnect(true);
+      return;
+    }
     joined = true;
     const player = {
       id: socket.id,
@@ -372,14 +407,16 @@ io.on("connection", socket => {
     const y = position.y;
     if (x < 16 || x > 784 || y < 16 || y > 584) {
       flagSuspiciousMove("move_out_of_bounds", { x, y });
+      socket.emit("player:correct", { x: player.x, y: player.y });
       return;
     }
     const elapsed = Math.max(0.05, Math.min(1, (now - lastMoveAt) / 1000));
     const distance = Math.hypot(x - player.x, y - player.y);
     // Server validiert Bewegungsrate; Teleports und unplausible Sprünge werden verworfen.
-    const maxDistance = 260 * elapsed + 12;
+    const maxDistance = 120 * elapsed + 8;
     if (distance > maxDistance) {
       flagSuspiciousMove("movement_speed_exceeded", { distance: Math.round(distance), allowed: Math.round(maxDistance) });
+      socket.emit("player:correct", { x: player.x, y: player.y });
       return;
     }
     player.x = x;
