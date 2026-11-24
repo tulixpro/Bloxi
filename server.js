@@ -168,6 +168,7 @@ async function initializeDatabase() {
   `);
   await pool.query("DELETE FROM sessions WHERE expires_at < NOW()");
   await pool.query("DELETE FROM email_verification_tokens WHERE expires_at < NOW()");
+  await pool.query("DELETE FROM anti_cheat_events WHERE created_at < NOW() - INTERVAL '30 days'");
   if (ADMIN_EMAIL || ADMIN_PASSWORD) {
     if (!ADMIN_EMAIL || !ADMIN_PASSWORD || !isEmail(ADMIN_EMAIL) || !isPassword(ADMIN_PASSWORD)) {
       throw new Error("VAYLOX_ADMIN_EMAIL und ein Passwort mit mindestens 12 Zeichen müssen gemeinsam gesetzt sein.");
