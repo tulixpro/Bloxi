@@ -1,6 +1,6 @@
-# Bloxi
+# Playora
 
-Bloxi ist eine frühe Grundlage für eine herunterladbare Multiplayer-Spielplattform mit Bloxi Player und Bloxi Studio.
+Playora ist eine frühe Grundlage für eine herunterladbare Multiplayer-Spielplattform mit Playora Player und Playora Studio.
 
 ## Voraussetzungen
 
@@ -33,10 +33,10 @@ Electron Builder erstellt den Installer für das Betriebssystem, auf dem der Bui
 
 ## Was der Prototyp schon enthält
 
-- Electron-Desktop-Shell als Ausgangspunkt für Bloxi Player
+- Electron-Desktop-Shell als Ausgangspunkt für Playora Player
 - Kleine gemeinsame Testwelt mit Echtzeit-Spielerpositionen über Socket.IO
 - Anzeigenamen für die aktuelle Spielsitzung
-- Bloxi Studio-Prototyp mit Raster, Gras-, Stein-, Wasser- und Sandfeldern
+- Playora Studio-Prototyp mit Raster, Gras-, Stein-, Wasser- und Sandfeldern
 - Veröffentlichung einer gebauten Welt auf dem laufenden Server
 - Einfache Status- und Welten-API
 
