@@ -36,4 +36,4 @@ addEventListener('keydown',e=>{let k=e.key.toLowerCase();if(['arrowup','arrowdow
 addEventListener('keyup',e=>{let k=e.key.toLowerCase();keys[{w:'up',arrowup:'up',s:'down',arrowdown:'down',a:'left',arrowleft:'left',d:'right',arrowright:'right'}[k]||k]=false});
 document.querySelectorAll('[data-move]').forEach(b=>{let k=b.dataset.move;b.addEventListener('pointerdown',e=>{e.preventDefault();if(k==='interact')interact();else keys[k]=true});['pointerup','pointerleave','pointercancel'].forEach(ev=>b.addEventListener(ev,()=>keys[k]=false))});
 $('#close').onclick=()=>$('#dialog').style.display='none';$('#reset').onclick=()=>{if(confirm('Alle gefundenen Fragmente auf diesem Gerät zurücksetzen?')){found.clear();save();area=0;player={x:80,y:260};$('#area').textContent=areas[0].name}};updateUI();loop();
-</script></body></html>
+</script><script>(async()=>{try{const r=await fetch('/api/auth/me',{credentials:'same-origin'});if(!r.ok)throw new Error('login')}catch{location.replace('login.html?next=discovery.html')}})();</script></body></html>
