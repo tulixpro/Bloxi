@@ -165,6 +165,7 @@ async function initializeDatabase() {
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
     CREATE INDEX IF NOT EXISTS anti_cheat_events_created_idx ON anti_cheat_events(created_at DESC);
+    CREATE INDEX IF NOT EXISTS anti_cheat_events_user_created_idx ON anti_cheat_events(user_id, created_at DESC);
   `);
   await pool.query("DELETE FROM sessions WHERE expires_at < NOW()");
   await pool.query("DELETE FROM email_verification_tokens WHERE expires_at < NOW()");
