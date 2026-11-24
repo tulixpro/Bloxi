@@ -1,0 +1,17 @@
+{
+  "id": "/",
+  "name": "Vaylox – Spiele & Creator Studio",
+  "short_name": "Vaylox",
+  "description": "Spiele online, triff andere Spieler und baue eigene 3D-Welten.",
+  "lang": "de",
+  "start_url": "/index.html",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0b1020",
+  "theme_color": "#101326",
+  "categories": ["games", "entertainment"],
+  "icons": [
+    { "src": "/icons/vaylox.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}
