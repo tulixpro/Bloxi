@@ -1,0 +1,42 @@
+services:
+  - type: web
+    name: vaylox
+    runtime: node
+    plan: free
+    region: frankfurt
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /api/status
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: vaylox-db
+          property: connectionString
+      - key: APP_BASE_URL
+        sync: false
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_PORT
+        value: "587"
+      - key: SMTP_SECURE
+        value: "false"
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASS
+        sync: false
+      - key: SMTP_FROM
+        sync: false
+      - key: VAYLOX_ADMIN_USERNAME
+        value: VayloxAdmin
+      - key: VAYLOX_ADMIN_EMAIL
+        sync: false
+      - key: VAYLOX_ADMIN_PASSWORD
+        sync: false
+
+databases:
+  - name: vaylox-db
+    databaseName: vaylox
+    plan: free
+    region: frankfurt
