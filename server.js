@@ -88,7 +88,7 @@ const normalizeEmail = value => String(value || "").trim().toLowerCase();
 const normalizeName = value => String(value || "").trim();
 const isEmail = value => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(value);
 const isUsername = value => /^[a-zA-Z0-9_]{3,16}$/.test(value);
-const isPassword = value => typeof value === "string" && value.length >= 12 && value.length <= 128;
+const isPassword = value => typeof value === "string" && value.length >= 12 && Buffer.byteLength(value, "utf8") <= 72;
 const cookieOptions = { httpOnly: true, sameSite: "strict", secure: process.env.NODE_ENV === "production", path: "/", maxAge: SESSION_TTL_MS };
 
 function requireDatabase(_req, res, next) {
@@ -192,7 +192,7 @@ async function initializeDatabase() {
   await pool.query("DELETE FROM anti_cheat_events WHERE created_at < NOW() - INTERVAL '30 days'");
   if (ADMIN_EMAIL || ADMIN_PASSWORD) {
     if (!ADMIN_EMAIL || !ADMIN_PASSWORD || !isEmail(ADMIN_EMAIL) || !isPassword(ADMIN_PASSWORD)) {
-      throw new Error("VAYLOX_ADMIN_EMAIL und ein Passwort mit mindestens 12 Zeichen müssen gemeinsam gesetzt sein.");
+      throw new Error("VAYLOX_ADMIN_EMAIL und ein Passwort mit mindestens 12 Zeichen und höchstens 72 UTF-8-Bytes müssen gemeinsam gesetzt sein.");
     }
     const passwordHash = await bcrypt.hash(ADMIN_PASSWORD, 12);
     const existing = await pool.query("SELECT id FROM users WHERE LOWER(email)=LOWER($1)", [ADMIN_EMAIL]);
@@ -214,7 +214,7 @@ app.post("/api/auth/register", registerLimiter, requireDatabase, async (req, res
     const password = req.body?.password;
     if (!isUsername(username)) return res.status(400).json({ error: "Der Spielername muss 3–16 Zeichen haben (Buchstaben, Zahlen, Unterstrich)." });
     if (!isEmail(email) || email.length > 254) return res.status(400).json({ error: "Bitte gib eine gültige E-Mail-Adresse ein." });
-    if (!isPassword(password)) return res.status(400).json({ error: "Das Passwort muss mindestens 12 Zeichen haben." });
+    if (!isPassword(password)) return res.status(400).json({ error: "Das Passwort muss mindestens 12 Zeichen und darf höchstens 72 UTF-8-Bytes haben." });
     const passwordHash = await bcrypt.hash(password, 12);
     const client = await pool.connect();
     let user;
