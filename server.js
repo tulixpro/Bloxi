@@ -79,6 +79,8 @@ app.use("/api", (req, res, next) => {
 app.use(express.static(path.join(__dirname, "public")));
 // Serve the platform homepage from the repository root.
 app.get("/", (_req, res) => res.sendFile(path.join(__dirname, "index.html")));
+// Support direct links and bookmarks that explicitly request /index.html.
+app.get("/index.html", (_req, res) => res.sendFile(path.join(__dirname, "index.html")));
 const apiLimiter = rateLimit({ windowMs: 60 * 1000, limit: 120, standardHeaders: true, legacyHeaders: false, message: { error: "Zu viele Anfragen. Bitte warte kurz." } });
 app.use("/api", apiLimiter);
 
