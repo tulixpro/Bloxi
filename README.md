@@ -59,17 +59,19 @@ Das Admin-Konto wird beim Serverstart aus `VAYLOX_ADMIN_USERNAME`, `VAYLOX_ADMIN
 
 ## Deployment
 
-Eine Render-Konfiguration liegt in `render.yaml`. Sie erstellt nur den kostenlosen Webdienst; es wird absichtlich keine Render-Postgres-Datenbank erstellt, da diese im Free-Tarif nach 30 Tagen abläuft. Als externe PostgreSQL-Option ist Neon Free dokumentiert; die Datenbank muss vom Projektinhaber erstellt und über das geheime Render-Environment-Feld `DATABASE_URL` verbunden werden. Siehe [kostenloses Hosting-Setup](docs/FREE_HOSTING.md). Der Render-Free-Webdienst kann bei Inaktivität schlafen. Für Registrierung und E-Mail-Bestätigung ist zusätzlich ein SMTP-Anbieter erforderlich. `APP_BASE_URL`, SMTP-Zugangsdaten und Admin-Geheimnisse nur im Render-Dashboard setzen, niemals in GitHub oder Chatnachrichten.
+Die Website wird über GitHub automatisch auf Render bereitgestellt. Der zuletzt geprüfte Deploy war **live** unter https://vaylox.onrender.com. Der Render-Dienst verwendet den kostenlosen Tarif; er kann bei Inaktivität schlafen. Eine Live-Website bedeutet noch nicht, dass Konten und Multiplayer vollständig eingerichtet sind.
 
-## Noch nicht fertig
+Eine Render-Konfiguration liegt in `render.yaml`. Sie erstellt nur den kostenlosen Webdienst; es wird absichtlich keine Render-Postgres-Datenbank erstellt, da diese im Free-Tarif nach 30 Tagen abläuft. Als externe PostgreSQL-Option ist Neon Free dokumentiert; die Datenbank muss vom Projektinhaber erstellt und über das geheime Render-Environment-Feld `DATABASE_URL` verbunden werden. Siehe [kostenloses Hosting-Setup](docs/FREE_HOSTING.md). Für Registrierung und E-Mail-Bestätigung ist zusätzlich ein SMTP-Anbieter erforderlich. `APP_BASE_URL`, SMTP-Zugangsdaten und Admin-Geheimnisse nur im Render-Dashboard setzen, niemals in GitHub oder Chatnachrichten.
 
-- Vollständiges Benutzerkontensystem, Registrierung, sichere normale Anmeldung und Passwort-Reset
-- Passwort-Zurücksetzen, Moderation und vollständiger Sicherheits-/Lasttest
-- 3D-Spielengine, Physik, Animationen und richtige Spielmechaniken
-- Freundesliste, Einladungen, Chat, Moderation und Meldefunktionen
+## Noch nicht fertig / vor öffentlichem Start
+
+- **Datenbank und E-Mail-Versand live konfigurieren:** Der Account-Code ist vorhanden, aber ohne externe PostgreSQL-Datenbank und SMTP-Einstellungen sind Registrierung und Login online noch nicht nutzbar.
+- Passwort-Zurücksetzen, Freundesliste, Einladungen, Chat, Moderation und Meldefunktionen
+- Vollständige 3D-Spielengine mit Physik, Animationen und umfangreichen Spielmechaniken; aktuell ist es ein Prototyp
 - Sichere Prüfung und Begrenzung veröffentlichter Inhalte
-- Öffentliche Spielserver, Matchmaking, Skalierung und automatische Bereitstellung
+- Öffentliche Spielserver, Matchmaking und horizontale Skalierung
 - Signierte, getestete Installer und automatische Updates
+- Datenschutz-/Nutzungsbedingungen, altersgerechter Einwilligungsprozess sowie vollständige Sicherheits-, Datenschutz- und Lasttests
 
 **Sicherheitsgrenzen:** Das ist eine erste Schutzschicht, kein vollständiges Anti-Cheat-System und keine Garantie gegen Angriffe. Die Bewegung wird serverseitig begrenzt, aber echte Spiele brauchen zusätzlich serverautoritatives Gameplay, Berechtigungsprüfungen pro Aktion, Moderation, Monitoring, Backups und Last-/Penetrationstests. Socket.IO verlangt jetzt ein gültiges Login-Cookie; nicht angemeldete Clients werden abgewiesen. Vor öffentlichem Start muss das komplette Spielprotokoll geprüft und getestet werden.
 
