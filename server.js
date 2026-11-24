@@ -2,6 +2,7 @@ const express = require("express");
 const http = require("http");
 const path = require("path");
 const { Server } = require("socket.io");
+const crypto = require("crypto");
 
 const app = express();
 const server = http.createServer(app);
@@ -9,9 +10,60 @@ const io = new Server(server, { cors: { origin: "*" } });
 const PORT = process.env.PORT || 3000;
 const players = new Map();
 const publishedWorlds = new Map();
+const adminSessions = new Map();
+const adminAttempts = new Map();
+const ADMIN_NAME = process.env.VAYLOX_ADMIN_USERNAME || "VayloxAdmin";
+const ADMIN_PASSWORD = process.env.VAYLOX_ADMIN_PASSWORD || "";
+const SESSION_TTL = 12 * 60 * 60 * 1000;
+function readCookie(req, name) {
+  const raw = req.headers.cookie || "";
+  const part = raw.split(";").map(v => v.trim()).find(v => v.startsWith(name + "="));
+  return part ? decodeURIComponent(part.slice(name.length + 1)) : "";
+}
+function getAdmin(req) {
+  const token = readCookie(req, "vaylox_admin");
+  const session = adminSessions.get(token);
+  if (!session || session.expires < Date.now()) { if (token) adminSessions.delete(token); return null; }
+  session.expires = Date.now() + SESSION_TTL;
+  return { username: ADMIN_NAME, verified: true, role: "admin" };
+}
+function safeEqual(a, b) {
+  const aa = Buffer.from(String(a)); const bb = Buffer.from(String(b));
+  return aa.length === bb.length && crypto.timingSafeEqual(aa, bb);
+}
 
 app.use(express.json({ limit: "256kb" }));
 app.use(express.static(path.join(__dirname, "public")));
+
+app.post("/api/admin/login", (req, res) => {
+  const ip = req.ip || req.socket.remoteAddress || "unknown";
+  const now = Date.now();
+  const attempts = (adminAttempts.get(ip) || []).filter(t => now - t < 15 * 60 * 1000);
+  if (attempts.length >= 5) return res.status(429).json({ error: "Zu viele Versuche. Bitte später erneut probieren." });
+  attempts.push(now); adminAttempts.set(ip, attempts);
+  if (!ADMIN_PASSWORD) return res.status(503).json({ error: "Das Admin-Konto ist noch nicht auf dem Server eingerichtet." });
+  const { username, password } = req.body || {};
+  if (!safeEqual(username || "", ADMIN_NAME) || !safeEqual(password || "", ADMIN_PASSWORD)) {
+    return res.status(401).json({ error: "Anmeldedaten stimmen nicht." });
+  }
+  const token = crypto.randomBytes(32).toString("hex");
+  adminSessions.set(token, { expires: now + SESSION_TTL });
+  const secure = process.env.NODE_ENV === "production" ? "; Secure" : "";
+  res.setHeader("Set-Cookie", `vaylox_admin=${token}; HttpOnly; SameSite=Strict; Path=/; Max-Age=43200${secure}`);
+  adminAttempts.delete(ip);
+  res.json({ account: { username: ADMIN_NAME, verified: true, role: "admin" } });
+});
+app.get("/api/admin/me", (req, res) => {
+  const account = getAdmin(req);
+  if (!account) return res.status(401).json({ error: "Nicht angemeldet." });
+  res.json({ account });
+});
+app.post("/api/admin/logout", (req, res) => {
+  const token = readCookie(req, "vaylox_admin");
+  if (token) adminSessions.delete(token);
+  res.setHeader("Set-Cookie", "vaylox_admin=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0" + (process.env.NODE_ENV === "production" ? "; Secure" : ""));
+  res.json({ ok: true });
+});
 
 app.get("/api/status", (_req, res) => {
   res.json({ name: "Vaylox", status: "online", players: players.size, worlds: publishedWorlds.size });
