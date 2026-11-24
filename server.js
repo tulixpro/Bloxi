@@ -36,6 +36,8 @@ const pool = DATABASE_URL ? new Pool({
   idle_in_transaction_session_timeout: 15000,
   application_name: "vaylox"
 }) : null;
+// Idle-Client-Fehler abfangen, damit ein kurzzeitiger DB-Ausfall den Prozess nicht beendet.
+if (pool) pool.on("error", error => console.error("PostgreSQL idle client error:", error.message));
 const mailer = mailConfigured ? nodemailer.createTransport({
   host: process.env.SMTP_HOST,
   port: Number(process.env.SMTP_PORT || 587),
@@ -354,7 +356,23 @@ app.put("/api/skin", requireDatabase, async (req,res,next) => {
   } catch(error){next(error);}
 });
 
-app.get("/api/status", (_req, res) => res.json({ name: "Vaylox", status: pool && mailer ? "ready" : "limited", databaseConfigured: !!pool, emailVerificationConfigured: !!mailer, players: players.size, worlds: publishedWorlds.size }));
+app.get("/api/status", async (_req, res) => {
+  let databaseAvailable = false;
+  if (pool) {
+    try { await pool.query({ text: "SELECT 1", query_timeout: 3000 }); databaseAvailable = true; }
+    catch (error) { console.error("Database health check failed:", error.message); }
+  }
+  const ready = databaseAvailable && !!mailer;
+  res.status(200).json({
+    name: "Vaylox",
+    status: ready ? "ready" : "limited",
+    databaseConfigured: !!pool,
+    databaseAvailable,
+    emailVerificationConfigured: !!mailer,
+    players: players.size,
+    worlds: publishedWorlds.size
+  });
+});
 const worldLimiter = rateLimit({ windowMs: 60 * 1000, limit: 5, standardHeaders: true, legacyHeaders: false });
 app.get("/api/worlds", worldLimiter, requireDatabase, async (_req, res, next) => {
   try {
@@ -529,3 +547,25 @@ initializeDatabase().then(() => {
   console.error("Startup failed:", error);
   process.exit(1);
 });
+
+let shuttingDown = false;
+async function shutdown(signal) {
+  if (shuttingDown) return;
+  shuttingDown = true;
+  console.log("Vaylox shutting down (" + signal + ")");
+  const forceExit = setTimeout(() => process.exit(1), 10000);
+  forceExit.unref();
+  for (const socket of io.sockets.sockets.values()) socket.disconnect(true);
+  server.close(async error => {
+    try { if (pool) await pool.end(); }
+    catch (dbError) { console.error("Database shutdown failed:", dbError.message); }
+    if (error) {
+      console.error("HTTP shutdown failed:", error.message);
+      process.exitCode = 1;
+    }
+    clearTimeout(forceExit);
+    process.exit();
+  });
+}
+process.on("SIGTERM", () => shutdown("SIGTERM"));
+process.on("SIGINT", () => shutdown("SIGINT"));
