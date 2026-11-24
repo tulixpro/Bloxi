@@ -77,6 +77,7 @@ app.use("/api", (req, res, next) => {
   next();
 });
 app.use("/vendor/three", express.static(path.join(__dirname, "node_modules/three/build"), { fallthrough: false, maxAge: "7d" }));
+app.use("/vendor/three-addons", express.static(path.join(__dirname, "node_modules/three/examples/jsm"), { fallthrough: false, maxAge: "7d" }));
 app.use(express.static(path.join(__dirname, "public")));
 // Serve the platform homepage from the repository root.
 app.get("/", (_req, res) => res.sendFile(path.join(__dirname, "index.html")));
