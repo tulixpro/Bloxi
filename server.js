@@ -128,6 +128,15 @@ async function initializeDatabase() {
       expires_at TIMESTAMPTZ NOT NULL,
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
+    CREATE TABLE IF NOT EXISTS published_worlds (
+      id UUID PRIMARY KEY,
+      owner_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      name VARCHAR(32) NOT NULL,
+      tiles JSONB NOT NULL,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+    CREATE INDEX IF NOT EXISTS published_worlds_updated_idx ON published_worlds(updated_at DESC);
   `);
   await pool.query("DELETE FROM sessions WHERE expires_at < NOW()");
   await pool.query("DELETE FROM email_verification_tokens WHERE expires_at < NOW()");
@@ -240,25 +249,93 @@ app.post("/api/admin/logout", requireDatabase, async (req, res, next) => {
 });
 
 app.get("/api/status", (_req, res) => res.json({ name: "Vaylox", status: "online", players: players.size, worlds: publishedWorlds.size }));
-app.get("/api/worlds", (_req, res) => res.json([...publishedWorlds.values()]));
-app.post("/api/worlds", (req, res) => {
-  const { name, tiles } = req.body || {};
-  if (typeof name !== "string" || !name.trim() || !Array.isArray(tiles) || tiles.length > 1600) return res.status(400).json({ error: "Ungültige Welt." });
-  const world = { id: crypto.randomUUID(), name: name.trim().slice(0,32), tiles: tiles.slice(0,1600).map(t => ({ x: Math.max(0,Math.min(39,Number(t.x)||0)), y: Math.max(0,Math.min(39,Number(t.y)||0)), type: ["grass","stone","water","sand"].includes(t.type)?t.type:"grass" })), updatedAt: new Date().toISOString() };
-  publishedWorlds.set(world.id,world); io.emit("world:published",world); res.status(201).json(world);
+const worldLimiter = rateLimit({ windowMs: 60 * 1000, limit: 5, standardHeaders: true, legacyHeaders: false });
+app.get("/api/worlds", requireDatabase, async (_req, res, next) => {
+  try {
+    const result = await pool.query("SELECT id,name,tiles,updated_at FROM published_worlds ORDER BY updated_at DESC LIMIT 100");
+    res.json(result.rows.map(row => ({ id: row.id, name: row.name, tiles: row.tiles, updatedAt: row.updated_at })));
+  } catch (error) { next(error); }
+});
+app.post("/api/worlds", worldLimiter, requireDatabase, async (req, res, next) => {
+  try {
+    const user = await currentUser(req);
+    if (!user || (!user.email_verified && user.role !== "admin")) return res.status(401).json({ error: "Bitte bestätige deine E-Mail und melde dich an." });
+    const { name, tiles } = req.body || {};
+    if (typeof name !== "string" || !name.trim() || !Array.isArray(tiles) || tiles.length > 1600) return res.status(400).json({ error: "Ungültige Welt." });
+    const cleanTiles = [];
+    for (const tile of tiles) {
+      if (!tile || !Number.isInteger(Number(tile.x)) || !Number.isInteger(Number(tile.y)) || Number(tile.x) < 0 || Number(tile.x) > 39 || Number(tile.y) < 0 || Number(tile.y) > 39) return res.status(400).json({ error: "Ungültige Welt-Daten." });
+      cleanTiles.push({ x: Number(tile.x), y: Number(tile.y), type: ["grass","stone","water","sand"].includes(tile.type) ? tile.type : "grass" });
+    }
+    const world = { id: crypto.randomUUID(), name: name.trim().slice(0,32), tiles: cleanTiles, updatedAt: new Date().toISOString() };
+    await pool.query("INSERT INTO published_worlds(id,owner_id,name,tiles) VALUES($1,$2,$3,$4::jsonb)", [world.id,user.id,world.name,JSON.stringify(world.tiles)]);
+    io.emit("world:published",world);
+    res.status(201).json(world);
+  } catch (error) { next(error); }
 });
 
+// Socket.IO akzeptiert ausschließlich gültige, serverseitige Login-Sitzungen.
+io.use(async (socket, next) => {
+  try {
+    if (!pool) return next(new Error("Datenbank nicht verfügbar"));
+    const rawCookie = socket.handshake.headers.cookie || "";
+    const part = rawCookie.split(";").map(v => v.trim()).find(v => v.startsWith("vaylox_session="));
+    if (!part) return next(new Error("Anmeldung erforderlich"));
+    let token;
+    try { token = decodeURIComponent(part.slice("vaylox_session=".length)); } catch { return next(new Error("Ungültige Sitzung")); }
+    const result = await pool.query(
+      "SELECT u.id,u.username,u.role,u.email_verified FROM sessions s JOIN users u ON u.id=s.user_id WHERE s.token_hash=$1 AND s.expires_at>NOW()",
+      [hashToken(token)]
+    );
+    const account = result.rows[0];
+    if (!account || (!account.email_verified && account.role !== "admin")) return next(new Error("Gültige, bestätigte Anmeldung erforderlich"));
+    socket.data.account = account;
+    next();
+  } catch (_error) { next(new Error("Anmeldung konnte nicht geprüft werden")); }
+});
 io.on("connection", socket => {
-  socket.on("player:join", data => {
-    const name = typeof data?.name === "string" ? data.name.trim().slice(0,16) : "";
-    const player = { id: socket.id, name: name || "Spieler", x: 320 + Math.random()*100, y: 240 + Math.random()*80, color: ["#9b83ff","#50d6e8","#ffbd69","#ff83b8"][Math.floor(Math.random()*4)] };
-    players.set(socket.id,player); socket.emit("players:init",[...players.values()]); socket.broadcast.emit("player:joined",player);
+  let joined = false;
+  let lastMoveAt = 0;
+  let moveEvents = 0;
+  let moveWindowAt = Date.now();
+  socket.on("player:join", () => {
+    if (joined) return;
+    joined = true;
+    const player = {
+      id: socket.id,
+      name: socket.data.account.username,
+      x: 320 + Math.random()*100,
+      y: 240 + Math.random()*80,
+      color: ["#9b83ff","#50d6e8","#ffbd69","#ff83b8"][Math.floor(Math.random()*4)]
+    };
+    players.set(socket.id,player);
+    lastMoveAt = Date.now();
+    socket.emit("players:init",[...players.values()]);
+    socket.broadcast.emit("player:joined",player);
   });
   socket.on("player:move", position => {
-    const player = players.get(socket.id); if (!player || !position) return;
-    player.x = Math.max(16,Math.min(784,Number(position.x)||player.x)); player.y = Math.max(16,Math.min(584,Number(position.y)||player.y)); socket.broadcast.emit("player:moved",player);
+    const player = players.get(socket.id);
+    if (!joined || !player || !position || typeof position !== "object") return;
+    const now = Date.now();
+    if (now - moveWindowAt >= 1000) { moveWindowAt = now; moveEvents = 0; }
+    moveEvents += 1;
+    if (moveEvents > 25) return;
+    const x = Number(position.x);
+    const y = Number(position.y);
+    if (!Number.isFinite(x) || !Number.isFinite(y) || x < 16 || x > 784 || y < 16 || y > 584) return;
+    const elapsed = Math.max(0.05, Math.min(1, (now - lastMoveAt) / 1000));
+    const distance = Math.hypot(x - player.x, y - player.y);
+    // Server validiert Bewegungsrate; Teleports und unplausible Sprünge werden verworfen.
+    const maxDistance = 260 * elapsed + 12;
+    if (distance > maxDistance) return;
+    player.x = x;
+    player.y = y;
+    lastMoveAt = now;
+    socket.broadcast.emit("player:moved",player);
   });
-  socket.on("disconnect", () => { players.delete(socket.id); io.emit("player:left",socket.id); });
+  socket.on("disconnect", () => {
+    if (players.delete(socket.id)) io.emit("player:left",socket.id);
+  });
 });
 
 app.use((error, _req, res, _next) => {
