@@ -98,7 +98,9 @@ async function createSession(userId, res) {
 function getCookie(req, name) {
   const raw = req.headers.cookie || "";
   const part = raw.split(";").map(v => v.trim()).find(v => v.startsWith(name + "="));
-  return part ? decodeURIComponent(part.slice(name.length + 1)) : "";
+  if (!part) return "";
+  try { return decodeURIComponent(part.slice(name.length + 1)); }
+  catch { return ""; }
 }
 async function currentUser(req) {
   const token = getCookie(req, "vaylox_session");
