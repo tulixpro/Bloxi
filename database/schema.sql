@@ -46,3 +46,4 @@ CREATE TABLE IF NOT EXISTS anti_cheat_events (
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 CREATE INDEX IF NOT EXISTS anti_cheat_events_created_idx ON anti_cheat_events(created_at DESC);
+CREATE INDEX IF NOT EXISTS anti_cheat_events_user_created_idx ON anti_cheat_events(user_id, created_at DESC);
