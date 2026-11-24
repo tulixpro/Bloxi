@@ -1,8 +1,8 @@
 {
-  "name": "playora",
+  "name": "vaylox",
   "version": "0.1.0",
   "private": true,
-  "description": "Playora – Multiplayer-Spielwelt und kreatives Studio",
+  "description": "Vaylox – Community-Spielplattform und Arcade",
   "main": "electron/main.cjs",
   "scripts": {
     "start": "node server.js",
@@ -11,19 +11,43 @@
   },
   "dependencies": {
     "express": "^4.21.2",
-    "socket.io": "^4.8.1"
+    "socket.io": "^4.8.1",
+    "bcryptjs": "^2.4.3",
+    "pg": "^8.13.3",
+    "nodemailer": "^6.10.0",
+    "helmet": "^8.0.0",
+    "express-rate-limit": "^7.5.0"
   },
   "devDependencies": {
     "electron": "^35.1.5",
     "electron-builder": "^26.0.12"
   },
   "build": {
-    "appId": "com.playora.client",
-    "productName": "Playora",
-    "files": ["electron/**/*", "public/**/*", "server.js", "package.json"],
-    "directories": { "buildResources": "build" },
-    "win": { "target": ["nsis"] },
-    "mac": { "target": ["dmg"] },
-    "linux": { "target": ["AppImage"] }
+    "appId": "com.vaylox.client",
+    "productName": "Vaylox",
+    "files": [
+      "electron/**/*",
+      "public/**/*",
+      "server.js",
+      "package.json"
+    ],
+    "directories": {
+      "buildResources": "build"
+    },
+    "win": {
+      "target": [
+        "nsis"
+      ]
+    },
+    "mac": {
+      "target": [
+        "dmg"
+      ]
+    },
+    "linux": {
+      "target": [
+        "AppImage"
+      ]
+    }
   }
 }
