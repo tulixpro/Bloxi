@@ -59,7 +59,7 @@ Das Admin-Konto wird beim Serverstart aus `VAYLOX_ADMIN_USERNAME`, `VAYLOX_ADMIN
 
 ## Deployment
 
-Eine Render-Konfiguration liegt in `render.yaml`. Sie erstellt nur den Webdienst; eine PostgreSQL-Datenbank muss separat bei einem Anbieter eingerichtet und über `DATABASE_URL` verbunden werden. Der Dienst ist noch nicht deployed. Prüfe Preise, Limits und Laufzeit des Datenbank- und Hosting-Angebots, bevor du es aktivierst. Für die erste Einrichtung müssen SMTP-Zugangsdaten, `APP_BASE_URL`, Admin-E-Mail und ein langes Admin-Passwort als Secrets gesetzt werden. Keine echten Zugangsdaten in GitHub oder in Chatnachrichten eintragen.
+Eine Render-Konfiguration liegt in `render.yaml`. Sie erstellt nur den kostenlosen Webdienst; es wird absichtlich keine Render-Postgres-Datenbank erstellt, da diese im Free-Tarif nach 30 Tagen abläuft. Als externe PostgreSQL-Option ist Neon Free dokumentiert; die Datenbank muss vom Projektinhaber erstellt und über das geheime Render-Environment-Feld `DATABASE_URL` verbunden werden. Siehe [kostenloses Hosting-Setup](docs/FREE_HOSTING.md). Der Render-Free-Webdienst kann bei Inaktivität schlafen. Für Registrierung und E-Mail-Bestätigung ist zusätzlich ein SMTP-Anbieter erforderlich. `APP_BASE_URL`, SMTP-Zugangsdaten und Admin-Geheimnisse nur im Render-Dashboard setzen, niemals in GitHub oder Chatnachrichten.
 
 ## Noch nicht fertig
 
