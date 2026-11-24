@@ -14,7 +14,7 @@ npm install
 npm start
 ```
 
-Danach im Browser `http://localhost:3000/client.html` öffnen.
+Danach kannst du im Browser `http://localhost:3000/games.html` für die drei Arcade-Prototypen oder `http://localhost:3000/client.html` für den Online-Multiplayer-Test öffnen.
 
 ## Desktop-App starten
 
@@ -33,6 +33,7 @@ Electron Builder erstellt den Installer für das Betriebssystem, auf dem der Bui
 
 ## Was der Prototyp schon enthält
 
+- Drei kleine, direkt spielbare Browser-Prototypen: Sky Obby, Coin Dash und Star Dodge (`/games.html`)
 - Electron-Desktop-Shell als Ausgangspunkt für Playora Player
 - Kleine gemeinsame Testwelt mit Echtzeit-Spielerpositionen über Socket.IO
 - Anzeigenamen für die aktuelle Spielsitzung
