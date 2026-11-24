@@ -1,8 +1,8 @@
-# Bloxi – Zielplattform und Architektur
+# Playora – Zielplattform und Architektur
 
 ## Produktziel
 
-Bloxi soll eine eigenständige Plattform für nutzergenerierte 3D-Spiele werden: eine Mischung aus einer Spiele-Community und einer kreativen Voxel-Sandbox. Die Website ist der öffentliche Einstieg und das Spiele-Entdecken-Menü. Der installierbare Client enthält dieselbe Konto-, Avatar-, Shop- und Spielebibliothek und startet veröffentlichte Erlebnisse.
+Playora soll eine eigenständige Plattform für nutzergenerierte 3D-Spiele werden: eine Mischung aus einer Spiele-Community und einer kreativen Voxel-Sandbox. Die Website ist der öffentliche Einstieg und das Spiele-Entdecken-Menü. Der installierbare Client enthält dieselbe Konto-, Avatar-, Shop- und Spielebibliothek und startet veröffentlichte Erlebnisse.
 
 ## Geplante Bereiche
 
@@ -10,8 +10,8 @@ Bloxi soll eine eigenständige Plattform für nutzergenerierte 3D-Spiele werden:
 2. **Accounts und Profile** – sichere Anmeldung, Profil, Freundesliste und Privatsphäre-Einstellungen.
 3. **Avatar** – modularer Charakter, Farben, Kleidung, kosmetische Items und gespeicherte Outfits.
 4. **Coins und Shop** – serverseitiges virtuelles Guthaben, Belohnungen für Spielaktivität und Käufe rein kosmetischer Items. Keine Echtgeld-Käufe als Voraussetzung.
-5. **Bloxi Player** – 3D-Voxel-Engine, Spiel-Laufzeit, Multiplayer und plattformübergreifende Eingabe.
-6. **Bloxi Studio** – Welt-Editor, Assets, einfache Gameplay-Logik, Testmodus, Speichern und Veröffentlichen.
+5. **Playora Player** – 3D-Voxel-Engine, Spiel-Laufzeit, Multiplayer und plattformübergreifende Eingabe.
+6. **Playora Studio** – Welt-Editor, Assets, einfache Gameplay-Logik, Testmodus, Speichern und Veröffentlichen.
 7. **Creator-Plattform** – Versionen, öffentliche Spielseiten, Melden/Moderation und sichere Veröffentlichung.
 
 ## Plattformstrategie
@@ -51,4 +51,4 @@ Die Website bleibt ein responsives Web-Frontend für Entdecken, Profile und Crea
 
 ## Status heute
 
-Die Website zeigt eine Produkt-/UI-Vorschau. Der vorhandene Node-/Socket.IO-Code ist ein kleiner Multiplayer-Techniktest; die Electron-Hülle ist kein fertiger plattformübergreifender Client. Es gibt noch keine echten Konten, persistente Inventare, echte Coins, fertige 3D-Engine, Matchmaking-Infrastruktur oder veröffentlichte Spiele. Keine der Zielplattformen hat bereits einen getesteten, veröffentlichten Bloxi-Build.
+Die Website zeigt eine Produkt-/UI-Vorschau. Der vorhandene Node-/Socket.IO-Code ist ein kleiner Multiplayer-Techniktest; die Electron-Hülle ist kein fertiger plattformübergreifender Client. Es gibt noch keine echten Konten, persistente Inventare, echte Coins, fertige 3D-Engine, Matchmaking-Infrastruktur oder veröffentlichte Spiele. Keine der Zielplattformen hat bereits einen getesteten, veröffentlichten Playora-Build.
