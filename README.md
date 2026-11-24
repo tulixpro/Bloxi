@@ -35,7 +35,8 @@ Electron Builder erstellt den Installer für das Betriebssystem, auf dem der Bui
 
 - Drei direkt spielbare Arcade-Prototypen: Sky Obby, Coin Dash und Star Dodge (`/games.html`)
 - Erkundungsspiel „Die verlorenen Archive“ mit drei Gebieten, sechs Story-Hinweisen und lokal gespeichertem Fortschritt (`/discovery.html`)
-- Geschützter Admin-Login mit serverseitig vergebener Rolle und verifiziertem Status (`/admin.html`)
+- Datenbankgestützte Accounts mit Passwort-Hashing, E-Mail-Bestätigung und serverseitigen Sitzungen (`/register.html`, `/login.html`, `/verify.html`)
+- Geschützter Admin-Login: Admin-Rolle wird ausschließlich über Hosting-Secrets eingerichtet (`/admin.html`)
 - Electron-Desktop-Shell als Ausgangspunkt für Vaylox Player
 - Kleine gemeinsame Testwelt mit Echtzeit-Spielerpositionen über Socket.IO
 - Anzeigenamen für die aktuelle Spielsitzung
@@ -43,9 +44,13 @@ Electron Builder erstellt den Installer für das Betriebssystem, auf dem der Bui
 - Veröffentlichung einer gebauten Welt auf dem laufenden Server
 - Einfache Status- und Welten-API
 
-## Admin-Zugang einrichten
+## Accounts, E-Mail-Bestätigung und Admin einrichten
 
-Der Benutzername ist standardmäßig `VayloxAdmin` (änderbar über `VAYLOX_ADMIN_USERNAME`). Ein Admin-Konto kann nicht über die öffentliche Registrierung erstellt werden. Setze auf dem Hosting-Server unter den Environment Variables ein starkes `VAYLOX_ADMIN_PASSWORD` und optional `VAYLOX_ADMIN_USERNAME`. Lege das Passwort niemals in HTML, JavaScript, GitHub oder einem Chat ab. Ohne gesetztes Passwort bleibt der Admin-Login deaktiviert. Aufruf: `/admin.html`. Die Admin-Sitzungen liegen derzeit nur im Arbeitsspeicher und werden bei einem Server-Neustart beendet.
+Für echte Accounts müssen `DATABASE_URL`, `APP_BASE_URL`, `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS` und `SMTP_FROM` als Hosting-Environment-Variablen gesetzt werden. Ohne Datenbank oder SMTP bleiben Registrierung und Anmeldung deaktiviert. Registrierte Spieler erhalten einen zeitlich begrenzten E-Mail-Bestätigungslink. Passwörter werden mit bcrypt gehasht; Session- und Bestätigungstokens werden nur als SHA-256-Hashes in PostgreSQL gespeichert.
+
+Das Admin-Konto wird beim Serverstart aus `VAYLOX_ADMIN_USERNAME`, `VAYLOX_ADMIN_EMAIL` und `VAYLOX_ADMIN_PASSWORD` eingerichtet. Benutzername ist standardmäßig `VayloxAdmin`. Die E-Mail muss eindeutig sein und das Passwort mindestens 12 Zeichen lang. Die öffentliche Registrierung kann keine Admin-Rolle vergeben. Admin-Passwort niemals in HTML, JavaScript, GitHub oder einem Chat speichern. Admin-Seite: `/admin.html`. Beispielvariablen stehen in `.env.example`.
+
+**Noch nötig vor öffentlichem Start:** SMTP-Absenderdomain verifizieren, Datenschutz- und Nutzungsbedingungen bereitstellen, Alters-/Einwilligungsprozess rechtlich prüfen, Passwort-Zurücksetzen ergänzen, Sicherheits- und Lasttests durchführen. Die aktuelle Registrierung fragt absichtlich kein Geburtsdatum ab und ist noch kein vollständiger Compliance-Prozess.
 
 ## Noch nicht fertig
 
