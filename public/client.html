@@ -9,16 +9,16 @@
 </style>
 </head>
 <body><main class="shell">
-<header class="top"><div class="brand">▰ <span>vaylox</span></div><div class="status" id="connection">Verbinde mit Playora Online …</div></header>
-<nav class="tabs"><button class="active" data-tab="play">Spielen</button><button data-tab="studio">Playora Studio</button></nav>
+<header class="top"><div class="brand">▰ <span>vaylox</span></div><div class="status" id="connection">Verbinde mit Vaylox Online …</div></header>
+<nav class="tabs"><button class="active" data-tab="play">Spielen</button><button onclick="location.href='studio.html'">3D Creator Studio ↗</button></nav>
 <section id="play">
 <div class="layout">
 <div class="panel game-wrap"><canvas id="game" width="800" height="600"></canvas><p class="hint">Steuerung: WASD oder Pfeiltasten. Bewegungen werden vom Server geprüft.</p></div>
-<aside class="panel side"><h3>Dein Spieler</h3><p class="small">Angemeldet als <strong id="accountName">Konto wird geprüft …</strong></p><button class="primary" id="join" disabled>Online beitreten</button><p id="playerCount">Noch nicht verbunden.</p><h3>Andere Spieler</h3><div id="playerList" class="small">Noch niemand da.</div><hr style="border-color:#ffffff20;margin:18px 0"><h3>Spielwelt</h3><p>Dies ist die erste Playora-Testwelt. Weitere Spiele und Welten können später veröffentlicht werden.</p><div id="worldList" class="world-list"></div></aside>
+<aside class="panel side"><h3>Dein Spieler</h3><p class="small">Angemeldet als <strong id="accountName">Konto wird geprüft …</strong></p><button class="primary" id="join" disabled>Online beitreten</button><p id="playerCount">Noch nicht verbunden.</p><h3>Andere Spieler</h3><div id="playerList" class="small">Noch niemand da.</div><hr style="border-color:#ffffff20;margin:18px 0"><h3>Spielwelt</h3><p>Dies ist die erste Vaylox-Testwelt. Weitere Spiele und Welten können später veröffentlicht werden.</p><div id="worldList" class="world-list"></div></aside>
 </div></section>
 <section id="studio" class="hidden">
 <div class="studio-grid"><div class="panel"><h2 style="margin-top:0">Deine Welt bauen</h2><canvas id="editor" class="editor" width="800" height="600"></canvas><p class="hint">Wähle einen Baustein und klicke auf ein Feld, um deine Welt zu gestalten.</p></div>
-<aside class="panel side"><h3>Playora Studio</h3><label class="small" for="worldName">Name deiner Welt</label><input id="worldName" class="name" maxlength="32" value="Meine erste Welt"><div class="tools" id="tools"><button class="active" data-type="grass">🌱 Gras</button><button data-type="stone">🪨 Stein</button><button data-type="water">💧 Wasser</button><button data-type="sand">🏖️ Sand</button><button data-type="erase">⌫ Radierer</button></div><div class="row"><button id="clear">Leeren</button><button class="primary" id="publish">Welt veröffentlichen</button></div><p id="studioMessage" class="hint">Deine Änderungen werden zunächst lokal im Browser gehalten.</p></aside></div>
+<aside class="panel side"><h3>Vaylox Studio</h3><label class="small" for="worldName">Name deiner Welt</label><input id="worldName" class="name" maxlength="32" value="Meine erste Welt"><div class="tools" id="tools"><button class="active" data-type="grass">🌱 Gras</button><button data-type="stone">🪨 Stein</button><button data-type="water">💧 Wasser</button><button data-type="sand">🏖️ Sand</button><button data-type="erase">⌫ Radierer</button></div><div class="row"><button id="clear">Leeren</button><button class="primary" id="publish">Welt veröffentlichen</button></div><p id="studioMessage" class="hint">Deine Änderungen werden zunächst lokal im Browser gehalten.</p></aside></div>
 </section>
 </main>
 <script src="/socket.io/socket.io.js"></script>
