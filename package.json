@@ -17,7 +17,7 @@
     "nodemailer": "^10.6.1",
     "helmet": "^8.0.0",
     "express-rate-limit": "^7.5.0",
-    "three": "^0.180.0"
+    "three": "^0.187.0"
   },
   "devDependencies": {
     "electron": "^35.1.5",
