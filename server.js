@@ -14,7 +14,7 @@ app.use(express.json({ limit: "256kb" }));
 app.use(express.static(path.join(__dirname, "public")));
 
 app.get("/api/status", (_req, res) => {
-  res.json({ name: "Bloxi", status: "online", players: players.size, worlds: publishedWorlds.size });
+  res.json({ name: "Playora", status: "online", players: players.size, worlds: publishedWorlds.size });
 });
 app.get("/api/worlds", (_req, res) => {
   res.json([...publishedWorlds.values()]);
@@ -67,5 +67,5 @@ io.on("connection", socket => {
 });
 
 server.listen(PORT, "0.0.0.0", () => {
-  console.log(`Bloxi server listening on ${PORT}`);
+  console.log(`Playora server listening on ${PORT}`);
 });
