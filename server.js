@@ -293,7 +293,7 @@ app.post("/api/admin/logout", requireDatabase, async (req, res, next) => {
   } catch (error) { next(error); }
 });
 
-app.get("/api/status", (_req, res) => res.json({ name: "Vaylox", status: "online", players: players.size, worlds: publishedWorlds.size }));
+app.get("/api/status", (_req, res) => res.json({ name: "Vaylox", status: pool && mailer ? "ready" : "limited", databaseConfigured: !!pool, emailVerificationConfigured: !!mailer, players: players.size, worlds: publishedWorlds.size }));
 const worldLimiter = rateLimit({ windowMs: 60 * 1000, limit: 5, standardHeaders: true, legacyHeaders: false });
 app.get("/api/worlds", worldLimiter, requireDatabase, async (_req, res, next) => {
   try {
