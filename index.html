@@ -11,6 +11,19 @@
 @media(max-width:1100px){:root{--sidebar:215px}.games{grid-template-columns:repeat(2,minmax(0,1fr))}.hero{grid-template-columns:1fr .65fr}.shop-grid{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:760px){.sidebar{position:sticky;top:0;width:100%;height:auto;padding:8px 12px;border-right:0;border-bottom:1px solid var(--line);display:block}.brand{height:36px;font-size:20px;padding:0 4px}.brand-mark{width:29px;height:29px}.nav-caption,.sidebar-bottom{display:none}.nav{display:flex;overflow-x:auto;gap:4px;padding-top:6px}.nav a{height:35px;white-space:nowrap;padding:0 10px;font-size:11px;gap:7px}.nav-icon{font-size:14px;width:auto}.main{margin-left:0}.topbar{height:56px;padding:0 14px}.top-links{display:none}.search-wrap{width:min(52vw,300px)}.content{padding:22px 15px 42px}.welcome{align-items:flex-start;flex-direction:column}.welcome h1{font-size:27px}.hero{min-height:190px;padding:23px;grid-template-columns:1fr}.hero-art{display:none}.feature-grid{grid-template-columns:1fr}.avatar-layout{grid-template-columns:1fr 1.2fr}.avatar-preview{min-height:180px}}
 @media(max-width:480px){.games{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.cover{height:105px;font-size:42px}.game-body{padding:10px}.game-title{align-items:flex-start;flex-direction:column;gap:5px}.game p{font-size:10px;min-height:44px}.game-foot{gap:5px}.game-foot span{font-size:9px}.play-btn{padding:7px 8px}.avatar-layout{grid-template-columns:1fr}.avatar-preview{min-height:145px}.shop-grid{grid-template-columns:repeat(2,1fr)}.login{padding:0 10px;font-size:11px}.top-right{gap:7px}}
+
+/* Refined interactive states for cards and navigation */
+.button,.play-btn,.buy,.filter,.login,.text-link,.nav a{transition:background .18s,color .18s,border-color .18s,box-shadow .18s,transform .18s}
+.button{box-shadow:0 2px 5px #18213a08}.button:hover{transform:translateY(-2px);box-shadow:0 7px 16px #18213a12}
+.button.primary{box-shadow:0 5px 13px #335cff28}.button.primary:hover{box-shadow:0 8px 20px #335cff38}
+.play-btn{background:#edf1ff;color:#294ed5;border:1px solid #e0e7ff;border-radius:8px;padding:8px 12px;font-weight:850}
+.play-btn:hover{background:#dfe7ff;border-color:#cbd7ff;transform:translateY(-1px)}
+.buy{background:#f0f3ff;border:1px solid #e1e7ff;border-radius:8px;color:#3153d1}
+.buy:hover:not(:disabled){background:#e2e9ff;transform:translateY(-1px)}
+.filter:hover{border-color:#c8d1ed;background:#f5f7ff;color:#2e4fc8}
+.filter.active:hover{background:#303747;color:#fff}
+.login{box-shadow:0 3px 8px #20232b18}.login:hover{background:#363b48;transform:translateY(-1px)}
+.nav a:focus-visible,.button:focus-visible,.play-btn:focus-visible,.buy:focus-visible,.filter:focus-visible{outline:3px solid #9aabff;outline-offset:2px}
 </style>
 </head>
 <body>
