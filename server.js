@@ -11,7 +11,7 @@ const { Server } = require("socket.io");
 
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server);
+const io = new Server(server, { maxHttpBufferSize: 16 * 1024, perMessageDeflate: false, pingTimeout: 20000, pingInterval: 25000 });
 const PORT = process.env.PORT || 3000;
 const players = new Map();
 const publishedWorlds = new Map();
@@ -137,6 +137,14 @@ async function initializeDatabase() {
       updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
     CREATE INDEX IF NOT EXISTS published_worlds_updated_idx ON published_worlds(updated_at DESC);
+    CREATE TABLE IF NOT EXISTS anti_cheat_events (
+      id BIGSERIAL PRIMARY KEY,
+      user_id BIGINT REFERENCES users(id) ON DELETE SET NULL,
+      event_type VARCHAR(48) NOT NULL,
+      details JSONB NOT NULL DEFAULT '{}'::jsonb,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+    CREATE INDEX IF NOT EXISTS anti_cheat_events_created_idx ON anti_cheat_events(created_at DESC);
   `);
   await pool.query("DELETE FROM sessions WHERE expires_at < NOW()");
   await pool.query("DELETE FROM email_verification_tokens WHERE expires_at < NOW()");
@@ -298,6 +306,21 @@ io.on("connection", socket => {
   let lastMoveAt = 0;
   let moveEvents = 0;
   let moveWindowAt = Date.now();
+  let suspiciousMoves = 0;
+  let lastSecurityLogAt = 0;
+  const flagSuspiciousMove = (reason, details = {}) => {
+    suspiciousMoves += 1;
+    const now = Date.now();
+    // Persist only occasional security events to avoid turning abuse into database load.
+    if (now - lastSecurityLogAt > 5000) {
+      lastSecurityLogAt = now;
+      pool.query(
+        "INSERT INTO anti_cheat_events(user_id,event_type,details) VALUES($1,$2,$3::jsonb)",
+        [socket.data.account.id, reason, JSON.stringify(details)]
+      ).catch(error => console.error("Anti-cheat event logging failed:", error.message));
+    }
+    if (suspiciousMoves >= 5) socket.disconnect(true);
+  };
   socket.on("player:join", () => {
     if (joined) return;
     joined = true;
@@ -319,15 +342,26 @@ io.on("connection", socket => {
     const now = Date.now();
     if (now - moveWindowAt >= 1000) { moveWindowAt = now; moveEvents = 0; }
     moveEvents += 1;
-    if (moveEvents > 25) return;
-    const x = Number(position.x);
-    const y = Number(position.y);
-    if (!Number.isFinite(x) || !Number.isFinite(y) || x < 16 || x > 784 || y < 16 || y > 584) return;
+    if (moveEvents > 20) { flagSuspiciousMove("move_rate_exceeded", { count: moveEvents }); return; }
+    if (typeof position !== "object" || Array.isArray(position) ||
+        !Number.isFinite(position.x) || !Number.isFinite(position.y)) {
+      flagSuspiciousMove("invalid_move_payload");
+      return;
+    }
+    const x = position.x;
+    const y = position.y;
+    if (x < 16 || x > 784 || y < 16 || y > 584) {
+      flagSuspiciousMove("move_out_of_bounds", { x, y });
+      return;
+    }
     const elapsed = Math.max(0.05, Math.min(1, (now - lastMoveAt) / 1000));
     const distance = Math.hypot(x - player.x, y - player.y);
     // Server validiert Bewegungsrate; Teleports und unplausible Sprünge werden verworfen.
     const maxDistance = 260 * elapsed + 12;
-    if (distance > maxDistance) return;
+    if (distance > maxDistance) {
+      flagSuspiciousMove("movement_speed_exceeded", { distance: Math.round(distance), allowed: Math.round(maxDistance) });
+      return;
+    }
     player.x = x;
     player.y = y;
     lastMoveAt = now;
