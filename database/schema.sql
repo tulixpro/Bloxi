@@ -36,6 +36,7 @@ CREATE TABLE IF NOT EXISTS published_worlds (
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+ALTER TABLE published_worlds ADD COLUMN IF NOT EXISTS objects JSONB NOT NULL DEFAULT '[]'::jsonb;
 CREATE INDEX IF NOT EXISTS published_worlds_updated_idx ON published_worlds(updated_at DESC);
 
 CREATE TABLE IF NOT EXISTS anti_cheat_events (
