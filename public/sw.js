@@ -1,5 +1,5 @@
 const VERSION = "vaylox-shell-v1";
-const SHELL = ["/", "/index.html", "/client.html", "/studio.html", "/manifest.webmanifest", "/icons/vaylox.svg"];
+const SHELL = ["/", "/index.html", "/client.html", "/studio.html", "/play.html", "/install.js", "/manifest.webmanifest", "/icons/vaylox.svg"];
 self.addEventListener("install", event => {
   event.waitUntil(caches.open(VERSION).then(cache => cache.addAll(SHELL)).then(() => self.skipWaiting()));
 });
