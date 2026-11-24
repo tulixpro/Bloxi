@@ -16,6 +16,7 @@ const PORT = process.env.PORT || 3000;
 const players = new Map();
 const configuredMaxPlayers = Number.parseInt(process.env.VAYLOX_MAX_ONLINE_PLAYERS || "500", 10);
 const MAX_ONLINE_PLAYERS = Number.isFinite(configuredMaxPlayers) ? Math.max(1, Math.min(5000, configuredMaxPlayers)) : 500;
+const MAX_SOCKET_CONNECTIONS = MAX_ONLINE_PLAYERS + Math.max(50, Math.ceil(MAX_ONLINE_PLAYERS * 0.2));
 const publishedWorlds = new Map();
 const SESSION_TTL_MS = 12 * 60 * 60 * 1000;
 const VERIFY_TTL_MS = 30 * 60 * 1000;
@@ -319,6 +320,7 @@ app.post("/api/worlds", worldLimiter, requireDatabase, async (req, res, next) =>
 // Socket.IO akzeptiert ausschließlich gültige, serverseitige Login-Sitzungen.
 io.use(async (socket, next) => {
   try {
+    if (io.engine.clientsCount >= MAX_SOCKET_CONNECTIONS) return next(new Error("Spielserver ist ausgelastet"));
     if (process.env.NODE_ENV === "production") {
       let expectedOrigin;
       try { expectedOrigin = new URL(process.env.APP_BASE_URL || "").origin; }
