@@ -52,6 +52,10 @@ Das Admin-Konto wird beim Serverstart aus `VAYLOX_ADMIN_USERNAME`, `VAYLOX_ADMIN
 
 **Noch nötig vor öffentlichem Start:** SMTP-Absenderdomain verifizieren, Datenschutz- und Nutzungsbedingungen bereitstellen, Alters-/Einwilligungsprozess rechtlich prüfen, Passwort-Zurücksetzen ergänzen, Sicherheits- und Lasttests durchführen. Die aktuelle Registrierung fragt absichtlich kein Geburtsdatum ab und ist noch kein vollständiger Compliance-Prozess.
 
+## Deployment
+
+Eine Render-Konfiguration liegt in `render.yaml`. Sie beschreibt einen Node-Webdienst und eine PostgreSQL-Datenbank in Frankfurt. Beide sind auf den Free-Plan gesetzt; Render kann Free-Ressourcen einschränken oder zeitlich begrenzen. Vor dem Anwenden im Render-Dashboard unbedingt den angezeigten Preis und die Laufzeit prüfen. Für die erste Einrichtung müssen SMTP-Zugangsdaten, `APP_BASE_URL`, Admin-E-Mail und ein langes Admin-Passwort als Secrets gesetzt werden. Keine echten Zugangsdaten in GitHub oder in Chatnachrichten eintragen.
+
 ## Noch nicht fertig
 
 - Vollständiges Benutzerkontensystem, Registrierung, sichere normale Anmeldung und Passwort-Reset
