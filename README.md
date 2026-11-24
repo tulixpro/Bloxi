@@ -1,6 +1,6 @@
-# Playora
+# Vaylox
 
-Playora ist eine frühe Grundlage für eine herunterladbare Multiplayer-Spielplattform mit Playora Player und Playora Studio.
+Vaylox ist ein Prototyp für eine Community-Spielplattform mit eigenen Browser-Games, Erkundungswelten und einem ersten Studio.
 
 ## Voraussetzungen
 
@@ -14,7 +14,7 @@ npm install
 npm start
 ```
 
-Danach kannst du im Browser `http://localhost:3000/games.html` für die drei Arcade-Prototypen oder `http://localhost:3000/client.html` für den Online-Multiplayer-Test öffnen.
+Danach kannst du im Browser `http://localhost:3000/games.html` für die Arcade-Prototypen oder `http://localhost:3000/discovery.html` für „Die verlorenen Archive“ oder `http://localhost:3000/client.html` für den Online-Multiplayer-Test öffnen.
 
 ## Desktop-App starten
 
@@ -33,17 +33,23 @@ Electron Builder erstellt den Installer für das Betriebssystem, auf dem der Bui
 
 ## Was der Prototyp schon enthält
 
-- Drei kleine, direkt spielbare Browser-Prototypen: Sky Obby, Coin Dash und Star Dodge (`/games.html`)
-- Electron-Desktop-Shell als Ausgangspunkt für Playora Player
+- Drei direkt spielbare Arcade-Prototypen: Sky Obby, Coin Dash und Star Dodge (`/games.html`)
+- Erkundungsspiel „Die verlorenen Archive“ mit drei Gebieten, sechs Story-Hinweisen und lokal gespeichertem Fortschritt (`/discovery.html`)
+- Geschützter Admin-Login mit serverseitig vergebener Rolle und verifiziertem Status (`/admin.html`)
+- Electron-Desktop-Shell als Ausgangspunkt für Vaylox Player
 - Kleine gemeinsame Testwelt mit Echtzeit-Spielerpositionen über Socket.IO
 - Anzeigenamen für die aktuelle Spielsitzung
-- Playora Studio-Prototyp mit Raster, Gras-, Stein-, Wasser- und Sandfeldern
+- Vaylox Studio-Prototyp mit Raster, Gras-, Stein-, Wasser- und Sandfeldern
 - Veröffentlichung einer gebauten Welt auf dem laufenden Server
 - Einfache Status- und Welten-API
 
+## Admin-Zugang einrichten
+
+Der Benutzername ist standardmäßig `VayloxAdmin` (änderbar über `VAYLOX_ADMIN_USERNAME`). Ein Admin-Konto kann nicht über die öffentliche Registrierung erstellt werden. Setze auf dem Hosting-Server unter den Environment Variables ein starkes `VAYLOX_ADMIN_PASSWORD` und optional `VAYLOX_ADMIN_USERNAME`. Lege das Passwort niemals in HTML, JavaScript, GitHub oder einem Chat ab. Ohne gesetztes Passwort bleibt der Admin-Login deaktiviert. Aufruf: `/admin.html`. Die Admin-Sitzungen liegen derzeit nur im Arbeitsspeicher und werden bei einem Server-Neustart beendet.
+
 ## Noch nicht fertig
 
-- Benutzerkonten, sichere Anmeldung und Passwort-Reset
+- Vollständiges Benutzerkontensystem, Registrierung, sichere normale Anmeldung und Passwort-Reset
 - Datenbank und dauerhaft gespeicherte Welten
 - 3D-Spielengine, Physik, Animationen und richtige Spielmechaniken
 - Freundesliste, Einladungen, Chat, Moderation und Meldefunktionen
