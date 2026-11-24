@@ -353,7 +353,7 @@ app.get("/api/skin", requireDatabase, async (req,res,next) => {
     const user=await currentUser(req);
     if(!user || (!user.email_verified && user.role!=="admin")) return res.status(401).json({error:"Bitte melde dich mit bestätigtem Konto an."});
     const result=await pool.query("SELECT skin FROM user_skins WHERE user_id=$1",[user.id]);
-    res.json({skin:result.rows[0]?.skin || defaultSkin});
+    res.json({skin:result.rows[0]?.skin || defaultSkin, owner:user.role==="admin", ownerItems:user.role==="admin" ? ownerExclusiveItems : []});
   } catch(error){next(error);}
 });
 app.put("/api/skin", requireDatabase, async (req,res,next) => {
