@@ -137,7 +137,8 @@ async function currentUser(req) {
   return result.rows[0] || null;
 }
 function publicAccount(user) {
-  return { username: user.username, email: user.email, emailVerified: user.email_verified, role: user.role, verified: user.role === "admin" || user.email_verified };
+  const isOwner = user.role === "admin";
+  return { username: user.username, email: user.email, emailVerified: user.email_verified, role: user.role, isOwner, title: isOwner ? "Vaylox Owner" : null, verified: isOwner || user.email_verified };
 }
 async function requireAdmin(req, res, next) {
   try {
@@ -334,7 +335,19 @@ const allowedSkinValues = {
   hairColor: ["#382b26","#e2bd55","#20202a","#b94b57","#8b70df"],
   accessory: ["hat","crown","none"]
 };
+const ownerExclusiveItems = [
+  { id:"founder-crown", name:"Founder-Krone", rarity:"LIMITED", type:"accessory", description:"Exklusives Zeichen des Plattformgründers." },
+  { id:"void-halo", name:"Void-Halo", rarity:"MYTHIC", type:"accessory", description:"Ein schwebender kosmischer Ring." },
+  { id:"prism-wings", name:"Prisma-Flügel", rarity:"MYTHIC", type:"accessory", description:"Schimmernde Flügel mit Farbwechsel." },
+  { id:"aurora-aura", name:"Aurora-Aura", rarity:"LEGENDARY", type:"effect", description:"Nordlicht-Effekt um den Avatar." },
+  { id:"golden-founder", name:"Goldener Founder-Anzug", rarity:"LIMITED", type:"outfit", description:"Ein exklusives Gründer-Outfit." },
+  { id:"starfall-trail", name:"Sternenstaub-Spur", rarity:"LEGENDARY", type:"effect", description:"Kosmische Partikel beim Bewegen." }
+];
 const defaultSkin = { tone:"#f1c7a2",hairStyle:"classic",shirtColor:"#9275ff",pantsColor:"#344b91",hairColor:"#382b26",accessory:"hat" };
+app.get("/api/owner/inventory", requireDatabase, requireAdmin, (_req,res) => {
+  res.set("Cache-Control","no-store");
+  res.json({ owner:true, title:"Vaylox Owner", items:ownerExclusiveItems });
+});
 app.get("/api/skin", requireDatabase, async (req,res,next) => {
   try {
     const user=await currentUser(req);
@@ -348,7 +361,9 @@ app.put("/api/skin", requireDatabase, async (req,res,next) => {
     const user=await currentUser(req);
     if(!user || (!user.email_verified && user.role!=="admin")) return res.status(401).json({error:"Bitte melde dich mit bestätigtem Konto an."});
     const input=req.body?.skin;
-    if(!input || typeof input!=="object" || Array.isArray(input) || Object.keys(input).some(k=>!allowedSkinKeys.includes(k)) || allowedSkinKeys.some(k=>!allowedSkinValues[k].includes(input[k]))) {
+    const owner = user.role === "admin";
+    const ownerValues = { hairStyle:["founder","void"], accessory:["founder-crown","void-halo","prism-wings"], shirtColor:["#d8b45a","#111827"], pantsColor:["#d8b45a"], hairColor:["#b7a6ff","#d8b45a"] };
+    if(!input || typeof input!=="object" || Array.isArray(input) || Object.keys(input).some(k=>!allowedSkinKeys.includes(k)) || allowedSkinKeys.some(k=>!(allowedSkinValues[k].includes(input[k]) || (owner && (ownerValues[k]||[]).includes(input[k]))))) {
       return res.status(400).json({error:"Ungültige Skin-Einstellungen."});
     }
     await pool.query("INSERT INTO user_skins(user_id,skin) VALUES($1,$2::jsonb) ON CONFLICT(user_id) DO UPDATE SET skin=EXCLUDED.skin,updated_at=NOW()",[user.id,JSON.stringify(input)]);
