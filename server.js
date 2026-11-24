@@ -45,7 +45,24 @@ const mailer = mailConfigured ? nodemailer.createTransport({
 
 app.set("trust proxy", 1);
 app.disable("x-powered-by");
-app.use(helmet({ contentSecurityPolicy: false }));
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      // Inline scripts are still used by the current static pages. Remote scripts are blocked;
+      // a future nonce migration can remove 'unsafe-inline'.
+      scriptSrc: ["'self'", "'unsafe-inline'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      imgSrc: ["'self'", "data:", "blob:", "https:"],
+      connectSrc: ["'self'", "ws:", "wss:"],
+      fontSrc: ["'self'", "data:"],
+      objectSrc: ["'none'"],
+      baseUri: ["'self'"],
+      frameAncestors: ["'none'"],
+      formAction: ["'self'"]
+    }
+  }
+}));
 app.use(express.json({ limit: "32kb" }));
 // Reject cross-origin state-changing browser requests in production.
 app.use("/api", (req, res, next) => {
