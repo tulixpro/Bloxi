@@ -351,6 +351,13 @@ io.on("connection", socket => {
   let lastSecurityLogAt = 0;
   let inboundWindowAt = Date.now();
   let inboundEvents = 0;
+  const sessionCheck = setInterval(async () => {
+    try {
+      const active = await pool.query("SELECT 1 FROM sessions WHERE token_hash=$1 AND expires_at>NOW()", [socket.data.sessionHash]);
+      if (!active.rowCount) socket.disconnect(true);
+    } catch (_error) { socket.disconnect(true); }
+  }, 60000);
+  sessionCheck.unref?.();
   const flagSuspiciousMove = (reason, details = {}) => {
     suspiciousMoves += 1;
     const now = Date.now();
@@ -394,7 +401,11 @@ io.on("connection", socket => {
   });
   socket.on("player:move", position => {
     const player = players.get(socket.id);
-    if (!joined || !player || !position || typeof position !== "object") return;
+    if (!joined || !player) return;
+    if (!position || typeof position !== "object" || Array.isArray(position)) {
+      flagSuspiciousMove("invalid_move_payload");
+      return;
+    }
     const now = Date.now();
     if (now - moveWindowAt >= 1000) { moveWindowAt = now; moveEvents = 0; }
     moveEvents += 1;
@@ -426,6 +437,7 @@ io.on("connection", socket => {
     socket.broadcast.emit("player:moved",player);
   });
   socket.on("disconnect", () => {
+    clearInterval(sessionCheck);
     if (players.delete(socket.id)) io.emit("player:left",socket.id);
   });
 });
