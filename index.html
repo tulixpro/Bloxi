@@ -24,6 +24,39 @@
 .filter.active:hover{background:#303747;color:#fff}
 .login{box-shadow:0 3px 8px #20232b18}.login:hover{background:#363b48;transform:translateY(-1px)}
 .nav a:focus-visible,.button:focus-visible,.play-btn:focus-visible,.buy:focus-visible,.filter:focus-visible{outline:3px solid #9aabff;outline-offset:2px}
+
+/* Vaylox discovery polish */
+:root{--blue:#385cff;--blue-soft:#edf1ff}
+body{background:#f7f8fb}
+.sidebar{box-shadow:5px 0 24px #17213a05}
+.brand-mark{background:linear-gradient(145deg,#5577ff,#263fc4);box-shadow:0 5px 14px #385cff35}
+.nav a.active{background:#edf1ff;color:#3155e5}
+.nav a.active .nav-icon{color:#3155e5}
+.topbar{box-shadow:0 5px 18px #18213a05}
+.content{padding-top:34px}
+.welcome h1{font-size:clamp(29px,3vw,38px);letter-spacing:-1.5px}
+.hero{min-height:250px;border-radius:20px;background:radial-gradient(circle at 78% 22%,#5369d955,transparent 26%),linear-gradient(115deg,#151a2d,#202b51 62%,#343b78);box-shadow:0 16px 36px #202b511c}
+.hero h2{font-size:clamp(30px,3.8vw,46px)}
+.floating-tile{backdrop-filter:blur(8px);border-radius:22px}
+.section{margin-top:40px}
+.section-head h2{font-size:23px;letter-spacing:-.7px}
+.games{gap:17px}
+.game{border-radius:16px;box-shadow:0 4px 16px #18213a08}
+.game:hover{transform:translateY(-5px);box-shadow:0 16px 30px #18213a13}
+.cover{height:160px}
+.cover span{font-size:58px;transition:transform .22s}
+.game:hover .cover span{transform:scale(1.12) rotate(-4deg)}
+.game-body{padding:14px 15px 15px}
+.game h3{font-size:14px}
+.game p{font-size:12px;line-height:1.55}
+.tag{background:#f0f2f7}
+.feature{border-radius:15px;box-shadow:0 3px 14px #18213a06}
+.feature:hover{border-color:#d4dcff;box-shadow:0 10px 24px #18213a0c}
+.profile-card{transition:border-color .18s,background .18s}
+.profile-card.signed-in{background:#f0f4ff;border-color:#d8e0ff}
+@media(max-width:760px){body{background:#fff}.hero{border-radius:16px}.cover{height:125px}.games{gap:11px}}
+@media(prefers-reduced-motion:reduce){*,*:before,*:after{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
+
 </style>
 <link rel="manifest" href="/manifest.webmanifest"><link rel="icon" href="/icons/vaylox.svg" type="image/svg+xml"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Vaylox"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><script defer src="/install.js"></script>
 </head>
@@ -89,5 +122,38 @@ const playableGames={'Block-Abenteuer':'coin','Mega Obby':'obby','City Life':'sp
 $('[data-game]').forEach(b=>b.addEventListener('click',()=>{const ids={'Mega Obby':'mega-obby','City Life':'vaylox-online-3d','Build World':'vaylox-online-3d','Pet Paradise':'vaylox-online-3d','Sky Islands':'lost-archives','Voxel Farm':'vaylox-online-3d','Treasure Tycoon':'coin-dash'};location.href='/game.html?id='+(ids[b.dataset.game]||'vaylox-online-3d')}));
 $$('.swatch').forEach(b=>b.addEventListener('click',()=>{$$('.swatch').forEach(x=>x.classList.toggle('selected',x===b));$('#avatarFigure').parentElement.style.background=b.dataset.color;$('#miniAvatar').style.background=b.dataset.color;toast('Farbe in der Vorschau geändert.')}));
 $$('.buy').forEach(b=>b.addEventListener('click',()=>{const cost=Number(b.dataset.cost);if(b.disabled)return;if(coins<cost){toast('Du brauchst noch '+(cost-coins)+' Coins.');return}coins-=cost;$('#shopCoins').textContent=coins;b.disabled=true;b.textContent='Freigeschaltet';toast(b.dataset.item+' – nur in dieser Demo-Vorschau!')}));
+
+async function syncAccountCard(){
+ const card=document.querySelector('.profile-card');
+ const name=card?.querySelector('.profile-copy b');
+ const sub=card?.querySelector('.profile-copy small');
+ const avatar=document.getElementById('miniAvatar');
+ const login=document.querySelector('.topbar .login');
+ try{
+  const r=await fetch('/api/auth/me',{credentials:'same-origin',cache:'no-store'});
+  if(!r.ok)throw new Error('signed out');
+  const d=await r.json(),username=d.account?.username;
+  if(!username)return;
+  if(name)name.textContent=username;
+  if(sub)sub.textContent='Vaylox-Mitglied';
+  if(avatar)avatar.textContent=username.slice(0,1).toUpperCase();
+  card?.classList.add('signed-in');
+  if(login){login.textContent='Mein Konto';login.href='/profile.html'}
+ }catch{
+  if(name)name.textContent='Nicht angemeldet';
+  if(sub)sub.textContent='Melde dich an, um mitzuspielen';
+  if(login){login.textContent='Konto erstellen';login.href='/login.html'}
+ }
+}
+syncAccountCard();
+document.addEventListener('keydown',e=>{
+ if(e.key==='/'&&!['INPUT','TEXTAREA'].includes(document.activeElement.tagName)){
+  e.preventDefault();document.getElementById('globalSearch')?.focus();
+ }
+ if(e.key==='Escape'&&document.activeElement.id==='globalSearch'){
+  const field=document.getElementById('globalSearch');field.value='';field.blur();filterGames();
+ }
+});
+
 </script>
 </body></html>
