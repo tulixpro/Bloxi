@@ -188,6 +188,11 @@ async function initializeDatabase() {
     );
     CREATE INDEX IF NOT EXISTS anti_cheat_events_created_idx ON anti_cheat_events(created_at DESC);
     CREATE INDEX IF NOT EXISTS anti_cheat_events_user_created_idx ON anti_cheat_events(user_id, created_at DESC);
+    CREATE TABLE IF NOT EXISTS user_skins (
+      user_id BIGINT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+      skin JSONB NOT NULL,
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
   `);
   await pool.query("DELETE FROM sessions WHERE expires_at < NOW()");
   await pool.query("DELETE FROM email_verification_tokens WHERE expires_at < NOW()");
@@ -310,6 +315,38 @@ app.post("/api/admin/logout", requireDatabase, async (req, res, next) => {
     res.clearCookie("vaylox_session", { ...cookieOptions, maxAge: undefined });
     res.json({ ok: true });
   } catch (error) { next(error); }
+});
+
+
+const allowedSkinKeys = ["tone","hairStyle","shirtColor","pantsColor","hairColor","accessory"];
+const allowedSkinValues = {
+  tone: ["#f1c7a2","#d99a70","#a96845","#70452f","#8bd8e8"],
+  hairStyle: ["classic","spiky","short","none"],
+  shirtColor: ["#9275ff","#22a6a1","#e45c75","#e6a23c","#3b65b8"],
+  pantsColor: ["#344b91","#30343f","#8b633e","#4b936a"],
+  hairColor: ["#382b26","#e2bd55","#20202a","#b94b57","#8b70df"],
+  accessory: ["hat","crown","none"]
+};
+const defaultSkin = { tone:"#f1c7a2",hairStyle:"classic",shirtColor:"#9275ff",pantsColor:"#344b91",hairColor:"#382b26",accessory:"hat" };
+app.get("/api/skin", requireDatabase, async (req,res,next) => {
+  try {
+    const user=await currentUser(req);
+    if(!user || (!user.email_verified && user.role!=="admin")) return res.status(401).json({error:"Bitte melde dich mit bestätigtem Konto an."});
+    const result=await pool.query("SELECT skin FROM user_skins WHERE user_id=$1",[user.id]);
+    res.json({skin:result.rows[0]?.skin || defaultSkin});
+  } catch(error){next(error);}
+});
+app.put("/api/skin", requireDatabase, async (req,res,next) => {
+  try {
+    const user=await currentUser(req);
+    if(!user || (!user.email_verified && user.role!=="admin")) return res.status(401).json({error:"Bitte melde dich mit bestätigtem Konto an."});
+    const input=req.body?.skin;
+    if(!input || typeof input!=="object" || Array.isArray(input) || Object.keys(input).some(k=>!allowedSkinKeys.includes(k)) || allowedSkinKeys.some(k=>!allowedSkinValues[k].includes(input[k]))) {
+      return res.status(400).json({error:"Ungültige Skin-Einstellungen."});
+    }
+    await pool.query("INSERT INTO user_skins(user_id,skin) VALUES($1,$2::jsonb) ON CONFLICT(user_id) DO UPDATE SET skin=EXCLUDED.skin,updated_at=NOW()",[user.id,JSON.stringify(input)]);
+    res.json({ok:true,skin:input});
+  } catch(error){next(error);}
 });
 
 app.get("/api/status", (_req, res) => res.json({ name: "Vaylox", status: pool && mailer ? "ready" : "limited", databaseConfigured: !!pool, emailVerificationConfigured: !!mailer, players: players.size, worlds: publishedWorlds.size }));
