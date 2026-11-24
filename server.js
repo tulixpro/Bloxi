@@ -40,6 +40,18 @@ app.set("trust proxy", 1);
 app.disable("x-powered-by");
 app.use(helmet({ contentSecurityPolicy: false }));
 app.use(express.json({ limit: "32kb" }));
+// Reject cross-origin state-changing browser requests in production.
+app.use("/api", (req, res, next) => {
+  if (process.env.NODE_ENV !== "production" || !["POST","PUT","PATCH","DELETE"].includes(req.method)) return next();
+  let expectedOrigin;
+  try { expectedOrigin = new URL(process.env.APP_BASE_URL || "").origin; }
+  catch { return res.status(503).json({ error: "Server-Origin ist nicht korrekt konfiguriert." }); }
+  const requestOrigin = req.get("origin");
+  if (!requestOrigin || requestOrigin !== expectedOrigin) {
+    return res.status(403).json({ error: "Anfrage-Origin wurde abgewiesen." });
+  }
+  next();
+});
 app.use(express.static(path.join(__dirname, "public")));
 
 const authLimiter = rateLimit({ windowMs: 15 * 60 * 1000, limit: 8, standardHeaders: true, legacyHeaders: false, message: { error: "Zu viele Versuche. Bitte warte kurz und versuche es erneut." } });
@@ -285,6 +297,14 @@ app.post("/api/worlds", worldLimiter, requireDatabase, async (req, res, next) =>
 // Socket.IO akzeptiert ausschließlich gültige, serverseitige Login-Sitzungen.
 io.use(async (socket, next) => {
   try {
+    if (process.env.NODE_ENV === "production") {
+      let expectedOrigin;
+      try { expectedOrigin = new URL(process.env.APP_BASE_URL || "").origin; }
+      catch { return next(new Error("Server-Origin ist nicht korrekt konfiguriert")); }
+      if (!socket.handshake.headers.origin || socket.handshake.headers.origin !== expectedOrigin) {
+        return next(new Error("Verbindung von unbekanntem Origin abgewiesen"));
+      }
+    }
     if (!pool) return next(new Error("Datenbank nicht verfügbar"));
     const rawCookie = socket.handshake.headers.cookie || "";
     const part = rawCookie.split(";").map(v => v.trim()).find(v => v.startsWith("vaylox_session="));
